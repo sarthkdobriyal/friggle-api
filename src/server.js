@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./utils/database');
 const authRoutes = require('./routes/authRoutes');
+const videoRoutes = require('./routes/videoRoutes');
 require('dotenv').config();
 
 // Connect to database
@@ -41,6 +42,8 @@ app.get('/api/health', (req, res) => {
 
 // Auth routes
 app.use('/api/auth', authRoutes);
+app.use('/api/video', videoRoutes);
+
 
 // Start server
 app.listen(PORT, () => {
