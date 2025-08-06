@@ -56,6 +56,21 @@ const register = async (req, res) => {
     });
   } catch (error) {
     console.error('Error registering user:', error);
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = {};
+      Object.keys(error.errors).forEach(key => {
+        validationErrors[key] = error.errors[key].message;
+      });
+      
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: validationErrors
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Server error',
