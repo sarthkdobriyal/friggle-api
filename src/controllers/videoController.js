@@ -1,7 +1,7 @@
 
 const Video = require('../models/videoModel');
 const { uploadVideoToS3 } = require('../services/uploadToS3Service');
-const { generateVideoVeo } = require('../services/videoGenerationService'); // Assuming this
+const { generateVideoVeo, enhancePrompt: enhancePromptService } = require('../services/videoGenerationService'); // Assuming this
 
 require('dotenv').config();
 
@@ -59,6 +59,23 @@ const getRecentVideos = async (req, res) => {
   }
 }
 
+const enhancePrompt = async (req, res) => {
+  const { userInput } = req.body;
+
+
+  if (!userInput) {
+    return res.status(400).json({ error: 'User input is required' });
+  }
+
+  try {
+    const modelResponse = await enhancePromptService(userInput);
+    const enhancedPrompt = modelResponse.parts[0].text; // Clean up the response
+    res.status(200).json({ enhancedPrompt });
+  } catch (error) {
+    console.error('Error enhancing prompt:', error);
+    res.status(500).json({ error: 'Failed to enhance prompt' });
+  }
+}
 
 const getAllVideos = async (req, res) => {
   const { userId } = req.user;
@@ -85,5 +102,6 @@ const getAllVideos = async (req, res) => {
 module.exports = {
   generateAiVideo,
   getRecentVideos,
-  getAllVideos
+  getAllVideos,
+  enhancePrompt
 };

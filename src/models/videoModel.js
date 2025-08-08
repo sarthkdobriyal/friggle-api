@@ -15,7 +15,6 @@ const videoSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Prompt is required'],
     trim: true,
-    maxlength: [1000, 'Prompt cannot exceed 1000 characters']
   }
 }, {
   timestamps: true
