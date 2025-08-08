@@ -18,7 +18,6 @@ async function generateVideoVeo(prompt) {
         model: "veo-3.0-generate-preview",
         prompt: prompt,
         config: {
-            // personGeneration: "allow_adult",
             aspectRatio: "16:9",
         },
     });

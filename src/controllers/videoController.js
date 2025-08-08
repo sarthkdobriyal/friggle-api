@@ -37,8 +37,8 @@ const generateAiVideo = async (req, res) => {
 
     res.status(200).json({ videoUrl: s3VideoUrl, videoId: video._id });
   } catch (error) {
-    console.error('Error generating video:', error);
-    res.status(500).json({ error: 'Failed to generate video' });
+    console.error('Error generating video:', error.message);
+    res.status(500).json({ error: error.message || 'Failed to generate video' });
   }
 }
 
