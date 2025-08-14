@@ -41,7 +41,21 @@ const getStats = async (req, res) => {
     }
 }
 
+
+const getAllVideos = async (req, res) => {
+    try {
+        // Populate userId with email
+        const videos = await Video.find().populate('userId', 'email');
+        console.log('Fetching all videos:', videos.length);
+        res.status(200).json(videos);
+    } catch (e) {
+        console.error('Error fetching all videos:', e);
+        res.status(500).json({ error: 'Failed to fetch all videos' });
+    }
+} 
+
 module.exports = {
     allusers,
-    getStats
+    getStats,
+    getAllVideos
 };
