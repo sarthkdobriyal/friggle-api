@@ -14,6 +14,57 @@ const allusers = async (req, res) => {
     }
 }
 
+const toggleisActive = async (req, res) => {
+    try{
+        const { userId } = req.body;
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        user.isActive = !user.isActive;
+        await user.save();
+        res.status(200).json({ message: 'User active status updated successfully' });
+    }catch(e) {
+        console.error('Error toggling active status:', e);
+        res.status(500).json({ error: 'Failed to toggle active status' });
+    }
+}
+const toggleisAdmin = async (req, res) => {
+    try{
+        console.log('Toggling admin status for user:', req.body);
+        const { userId } = req.body;
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        user.role = user.role === 'admin' ? 'user' : 'admin';
+        await user.save();
+        res.status(200).json({ message: 'User role updated successfully' });
+    }catch(e) {
+        console.error('Error toggling admin status:', e);
+        res.status(500).json({ error: 'Failed to toggle admin status' });
+    }
+}
+
+const deleteUser = async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        await user.deleteOne();
+        // Delete all videos by this user
+        await Video.deleteMany({ userId });
+        res.status(200).json({ message: 'User and their videos deleted successfully' });
+    } catch (e) {
+        console.error('Error deleting user:', e);
+        res.status(500).json({ error: 'Failed to delete user' });
+    }
+}
+
+
+
 
 const getStats = async (req, res) => {
     try {
@@ -54,8 +105,14 @@ const getAllVideos = async (req, res) => {
     }
 } 
 
+
+
 module.exports = {
     allusers,
     getStats,
-    getAllVideos
+    getAllVideos,
+    deleteUser,
+    toggleisActive,
+    toggleisAdmin
+
 };
