@@ -95,7 +95,7 @@ const getAllVideos = async (req, res) => {
 
 const getExampleVideos = async (req, res) => {
   try {
-    const videos = await Video.find().sort({ createdAt: 1 }).limit(3);
+    const videos = await Video.find().sort({ createdAt: -1 }).limit(3);
     res.status(200).json(videos);
   } catch (error) {
     console.error('Error fetching recent videos:', error);
