@@ -1,6 +1,8 @@
 const api_config = require('../config');
 const User = require('../models/userModel');
 const jwt = require('jsonwebtoken');
+const { sendPasswordResetEmail } = require('../services/emailService');
+const crypto = require('crypto');
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -167,9 +169,93 @@ const logout = async (req, res) => {
   });
 };
 
+// Forgot password
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    console.log(`Received password reset request for email: ${email}`);
+
+    // Check if user exists
+    const user = await User.findOne({ email });
+    
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'User with this email does not exist'
+      });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.verificationToken = resetToken;
+    user.verificationTokenExpires = Date.now() + 3600000; // 1 hour
+    
+    await user.save();
+
+    // Send password reset email
+    await sendPasswordResetEmail(user);
+
+    res.status(200).json({
+      success: true,
+      message: 'Password reset email sent successfully'
+    });
+  } catch (error) {
+    console.error('Error in forgot password:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// Reset password
+const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    console.log(`Received password reset for token: ${token}`);
+
+    // Find user with valid reset token
+    const user = await User.findOne({
+      verificationToken: token,
+      verificationTokenExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token'
+      });
+    }
+
+    // Update password
+    user.password = password;
+    user.verificationToken = undefined;
+    user.verificationTokenExpires = undefined;
+    
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Password reset successfully'
+    });
+  } catch (error) {
+    console.error('Error in reset password:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   logout,
-  getMe
+  getMe,
+  forgotPassword,
+  resetPassword
 };

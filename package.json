@@ -17,7 +17,8 @@
     "jsonwebtoken": "^9.0.2",
     "lumaai": "^1.16.0",
     "mongoose": "^8.17.0",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "nodemailer": "^7.0.5"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
