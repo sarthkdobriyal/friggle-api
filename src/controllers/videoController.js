@@ -140,8 +140,8 @@ const getAllVideos = async (req, res) => {
 
 const getExampleVideos = async (req, res) => {
   try {
-    // const videos = await Video.find().sort({ createdAt: -1 }).limit(3);
-    res.status(200).json({ message: 'Example videos endpoint - to be implemented' });
+    const videos = await Video.find().sort({ createdAt: -1 }).limit(3);
+    res.status(200).json(videos);
   } catch (error) {
     console.error('Error fetching recent videos:', error);
     res.status(500).json({ error: 'Failed to fetch recent videos' });
