@@ -1,6 +1,6 @@
 const Video = require('../models/videoModel');
 const { uploadVideoToS3 } = require('../services/uploadToS3Service');
-const { generateVideoVeo, generateVideoBytez, enhancePrompt: enhancePromptService, generateVideoEdenAi, generateVideoRunwayML, generateVideoReplicate, generateVideoLeonardoAI, generateVideoBytedance } = require('../services/videoGenerationService');
+const { generateVideoVeo, generateVideoBytez, enhancePrompt: enhancePromptService,  generateVideoReplicate, generateVideoLeonardoAI, generateVideoBytedance } = require('../services/videoGenerationService');
 
 require('dotenv').config();
 
