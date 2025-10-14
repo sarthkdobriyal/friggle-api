@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./utils/database');
 const authRoutes = require('./routes/authRoutes');
-// const videoRoutes = require('./routes/videoRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 require('dotenv').config();
 
@@ -26,9 +25,7 @@ app.use(cors({
   optionsSuccessStatus: 200
 }));
 
-// Handle preflight requests
 app.options('*', cors());
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -43,9 +40,17 @@ app.get('/api/health', (req, res) => {
 
 // Auth routes
 app.use('/api/auth', authRoutes);
-// app.use('/api/video', videoRoutes);
 app.use('/api/admin', adminRoutes);
 
+// Try to load video routes with error handling
+try {
+  const videoRoutes = require('./routes/videoRoutes');
+  app.use('/api/video', videoRoutes);
+  console.log('Video routes loaded successfully');
+} catch (error) {
+  console.error('Error loading video routes:', error.message);
+  // Don't crash the app, just log the error
+}
 
 // Export the app for Vercel
 module.exports = app;
