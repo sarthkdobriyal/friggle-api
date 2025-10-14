@@ -1,7 +1,6 @@
-
 const Video = require('../models/videoModel');
 const { uploadVideoToS3 } = require('../services/uploadToS3Service');
-const { generateVideoVeo, generateVideoBytez, enhancePrompt: enhancePromptService, generateVideoEdenAi, generateVideoRunwayML } = require('../services/videoGenerationService'); // Assuming this
+const { generateVideoVeo, generateVideoBytez, enhancePrompt: enhancePromptService, generateVideoEdenAi, generateVideoRunwayML, generateVideoReplicate, generateVideoLeonardoAI, generateVideoBytedance } = require('../services/videoGenerationService');
 
 require('dotenv').config();
 
@@ -22,6 +21,7 @@ const generateAiVideo = async (req, res) => {
 
   try {
     let videoUrl;
+    let needsS3Upload = true; // Flag to determine if we need to upload to S3
 
     if(model === "gemini_veo_3") {
       console.log("Generating video with Gemini Veo 3 model");
@@ -29,22 +29,32 @@ const generateAiVideo = async (req, res) => {
     } else if(model === "bytez_1.7b") {
       console.log("Generating video with Bytez 1.7B model");
       videoUrl = await generateVideoBytez(prompt);
-    } else if(model === "eden_ai") {
-      console.log("Generating video with Eden AI model");
-      videoUrl = await generateVideoEdenAi(prompt);
-    } else if(model === "runway_ml") {
-      console.log("Generating video with RunwayML model");
-      videoUrl = await generateVideoRunwayML(prompt);
+    } else if(model === "leonardoai/motion-2.0") {
+      console.log("Generating video with Leonardo AI Motion 2.0 model");
+      videoUrl = await generateVideoLeonardoAI(prompt, userId);
+      needsS3Upload = false; // Already uploaded to S3
+    } 
+    else if(model === "bytedance/seedance-1-pro") {
+      console.log("Generating video with Bytedance Seedance 1 Pro model");
+      videoUrl = await generateVideoBytedance(prompt);
+    } else if(model === "tencent/hunyuan-video" || model === "black-forest-labs/flux-kontext-pro" || model === "bytedance/seedance-1-pro") {
+      console.log("Generating video with Replicate model");
+      videoUrl = await generateVideoReplicate(prompt, model);
     } else {
       return res.status(400).json({ error: 'Invalid model selected' });
     }
 
-    // const videoUrl = "https://generativelanguage.googleapis.com/v1beta/files/ls9uy6ygd314:download?alt=media&key=AIzaSyAXsq6EzN7fhY55FKfohHnrB-S3VIt4nt0"
+    let s3VideoUrl;
+    
+    if (needsS3Upload) {
+      // Download video and upload to S3
+      s3VideoUrl = await uploadVideoToS3(videoUrl, userId);
+    } else {
+      // Video already uploaded to S3
+      s3VideoUrl = videoUrl;
+    }
 
-    // Download video and upload to S3
-    const s3VideoUrl = await uploadVideoToS3(videoUrl, userId);
-
-    // // Save video data to database
+    // Save video data to database
     const video = new Video({
       userId,
       video_url: s3VideoUrl,

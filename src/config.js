@@ -9,6 +9,7 @@ const api_config = {
   BYTEZ_KEY: process.env.BYTEZ_KEY,
   RUNWAYML_API_SECRET: process.env.RUNWAYML_API_SECRET,
   EDEN_AI_KEY: process.env.EDEN_AI_KEY,
+  REPLICATE_API_TOKEN: process.env.REPLICATE_API_TOKEN,
   S3_BUCKET: process.env.S3_BUCKET,
   S3_BUCKET_URL: process.env.S3_BUCKET_URL,
   AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,

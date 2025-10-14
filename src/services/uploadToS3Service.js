@@ -13,9 +13,25 @@ const s3Client = new S3Client({
   region: 'ap-south-1' 
 });
 
+const uploadBufferToS3 = async (buffer, fileName, contentType) => {
+    const uploadParams = {
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: `videos/${fileName}`,
+        Body: buffer,
+        ContentType: contentType,
+        ACL: 'public-read'
+    };
 
-
-
+    try {
+        console.log('Uploading buffer to S3...');
+        const result = await s3Client.send(new PutObjectCommand(uploadParams));
+        console.log('Buffer uploaded to S3:', result.Location);
+        return result.Location;
+    } catch (error) {
+        console.error('Error uploading buffer to S3:', error);
+        throw new Error('Failed to upload buffer to S3');
+    }
+};
 
 async function uploadVideoToS3(videoUrl, userId) {
   try {
@@ -50,7 +66,7 @@ async function uploadVideoToS3(videoUrl, userId) {
   }
 }
 
-
 module.exports = {
-  uploadVideoToS3
-}
+  uploadVideoToS3,
+  uploadBufferToS3
+};

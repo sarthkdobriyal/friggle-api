@@ -1,8 +1,9 @@
 const api_config = require('../config');
 const { GoogleGenAI } = require("@google/genai");
-const Bytez = require('bytez.js') ;
+const Bytez = require('bytez.js');
 const RunwayML = require('@runwayml/sdk');
 const { TaskFailedError } = require('@runwayml/sdk');
+const Replicate = require('replicate');
 require('dotenv').config();
 
 
@@ -15,6 +16,10 @@ const ai = new GoogleGenAI({
 const bytezSdk = new Bytez(api_config.BYTEZ_KEY);
 
 const runwayClient = new RunwayML({ apiKey: api_config.RUNWAYML_API_SECRET });
+
+const replicate = new Replicate({
+    auth: api_config.REPLICATE_API_TOKEN,
+});
 
 
 async function generateVideoVeo(prompt) {
@@ -84,29 +89,29 @@ async function generateVideoEdenAi(prompt) {
             authorization: `Bearer ${api_config.EDEN_AI_KEY}` // Use config instead of hardcoded token
         },
         body: JSON.stringify({
-    show_original_response: false,
-    send_webhook_data: true,
-    show_base_64: true,
-    duration: 6,
-    fps: 24,
-    dimension: '1280x720',
-    seed: 12,
-providers: ['bytedance/seedance-1-0-pro-250528'],
-    text: prompt
-  })
+            show_original_response: false,
+            send_webhook_data: true,
+            show_base_64: true,
+            duration: 6,
+            fps: 24,
+            dimension: '1280x720',
+            seed: 12,
+            providers: ['bytedance/seedance-1-0-pro-250528'],
+            text: prompt
+        })
     };
 
     try {
         // Initial request to start video generation
         const response = await fetch(url, options);
         const data = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(`EdenAI API error: ${data.message || response.statusText}`);
         }
 
         console.log("Video generation started:", data);
-        
+
         // Get the job ID to poll for completion
         const jobId = data.public_id;
         if (!jobId) {
@@ -129,17 +134,17 @@ providers: ['bytedance/seedance-1-0-pro-250528'],
 
         while (!completed && attempts < maxAttempts) {
             await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
-            
+
             const statusResponse = await fetch(statusUrl, statusOptions);
             const statusData = await statusResponse.json();
-            
+
             console.log(`Checking video generation status (attempt ${attempts + 1}):`, statusData);
-            
+
             if (statusData.status === 'finished') {
                 completed = true;
-                
+
                 // Extract video URL from response
-                if (statusData.results ) {
+                if (statusData.results) {
                     const videoUrl = statusData.results.video || statusData.results.video_resource_url;
                     console.log("Video generated successfully:", videoUrl);
                     return videoUrl;
@@ -149,7 +154,7 @@ providers: ['bytedance/seedance-1-0-pro-250528'],
             } else if (statusData.status === 'failed') {
                 throw new Error(`Video generation failed: ${statusData.error || 'Unknown error'}`);
             }
-            
+
             attempts++;
         }
 
@@ -165,20 +170,191 @@ providers: ['bytedance/seedance-1-0-pro-250528'],
 
 async function generateVideoRunwayML(prompt) {
     const task = await runwayClient.textToVideo
-  .create({
-    model: 'veo3',
-    promptText: prompt,
-    duration: 8,
-    ratio: '1280:720',
-  })
-  .waitForTaskOutput();
+        .create({
+            model: 'veo3',
+            promptText: prompt,
+            duration: 8,
+            ratio: '1280:720',
+        })
+        .waitForTaskOutput();
 
 
-  console.log("Video generated successfully with RunwayML:", task);
-  return task.output.videoUrl;
+    console.log("Video generated successfully with RunwayML:", task);
+    return task.output.videoUrl;
 
 }
 
+async function generateVideoReplicate(prompt, selectedModel) {
+    const modelConfigs = {
+        "bytedance/seedance-1-pro": {
+            name: "bytedance/seedance-1-pro",
+            input: {
+                prompt: prompt,
+                duration: 6,
+                fps: 24,
+                resolution: "480p"
+            }
+        },
+        "black-forest-labs/flux-kontext-pro": {
+            name: "black-forest-labs/flux-kontext-pro:latest",
+            input: {
+                prompt: prompt,
+                num_frames: 144,
+                fps: 24,
+                aspect_ratio: "16:9"
+            }
+        },
+        "leonardoai/motion-2.0": {
+            name: "leonardoai/motion-2.0",
+            input: {
+                "prompt": prompt,
+                "vibe_style": "None",
+                "aspect_ratio": "16:9",
+                "lighting_style": "None",
+                "prompt_enhance": true,
+                "shot_type_style": "None",
+                "color_theme_style": "None",
+                "frame_interpolation": true
+            }
+        },
+        "tencent/hunyuan-video": {
+            name: "tencent/hunyuan-video:6c9132aee14409cd6568d030453f1ba50f5f3412b844fe67f78a9eb62d55664f",
+            input: {
+                prompt: prompt,
+                video_length: 129,
+                resolution: "720p",
+                fps: 25
+            }
+        }
+    };
+
+    // Check if the selected model is supported
+    if (!modelConfigs[selectedModel]) {
+        throw new Error(`Unsupported model: ${selectedModel}. Available models: ${Object.keys(modelConfigs).join(', ')}`);
+    }
+
+    const modelConfig = modelConfigs[selectedModel];
+    const modelName = modelConfig.name;
+
+    try {
+        console.log(`Generating video with ${selectedModel}...`, modelConfig);
+
+        // Create prediction instead of run to get better control
+        const prediction = await replicate.predictions.create({
+            version: modelName.split(':')[1] || 'latest',
+            input: modelConfig.input
+        });
+
+        console.log('Prediction created:', prediction.id);
+
+        // Wait for prediction to complete
+        let completedPrediction = prediction;
+        while (completedPrediction.status !== 'succeeded' && completedPrediction.status !== 'failed') {
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+            completedPrediction = await replicate.predictions.get(prediction.id);
+            console.log(`Prediction status: ${completedPrediction.status}`);
+        }
+
+        if (completedPrediction.status === 'failed') {
+            throw new Error(`Prediction failed: ${completedPrediction.error}`);
+        }
+
+        console.log('Prediction completed:', completedPrediction.output);
+
+        // Extract video URL from completed prediction
+        let videoUrl;
+        const output = completedPrediction.output;
+
+        if (typeof output === 'string') {
+            videoUrl = output;
+        } else if (Array.isArray(output) && output.length > 0) {
+            videoUrl = output[0];
+        } else if (output && typeof output === 'object') {
+            videoUrl = output.video_url || output.video || output.url || output.output;
+        } else if (output.url) {
+            videoUrl = output.url;
+        } else {
+            throw new Error(`No video URL found in prediction output: ${JSON.stringify(output)}`);
+        }
+
+        if (!videoUrl || typeof videoUrl !== 'string') {
+            throw new Error(`Invalid video URL received: ${videoUrl}`);
+        }
+
+        console.log(`Video URL received: ${videoUrl}`);
+        return videoUrl;
+
+    } catch (error) {
+        console.error(`Error with ${selectedModel}:`, error.message);
+        throw new Error(`Video generation failed with ${selectedModel}: ${error.message}`);
+    }
+}
+
+async function generateVideoLeonardoAI(prompt, userId) {
+    const modelConfig = {
+        input: {
+            "prompt": prompt,
+            "vibe_style": "None",
+            "aspect_ratio": "16:9",
+            "lighting_style": "None",
+            "prompt_enhance": true,
+            "shot_type_style": "None",
+            "color_theme_style": "None",
+            "frame_interpolation": true
+        }
+    };
+
+    try {
+        console.log('Generating video with Leonardo AI Motion 2.0...', modelConfig);
+
+        // Use predictions API for better control
+        const prediction = await replicate.predictions.create({
+            version: "leonardoai/motion-2.0",
+            input: modelConfig.input
+        });
+
+        // Wait for prediction to complete
+        let completedPrediction = prediction;
+        while (completedPrediction.status !== 'succeeded' && completedPrediction.status !== 'failed') {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            completedPrediction = await replicate.predictions.get(prediction.id);
+            console.log(`Leonardo prediction status: ${completedPrediction.status}`);
+        }
+
+        if (completedPrediction.status === 'failed') {
+            throw new Error(`Leonardo prediction failed: ${completedPrediction.error}`);
+        }
+
+        const output = completedPrediction.output;
+        let videoUrl;
+
+        if (typeof output === 'string') {
+            videoUrl = output;
+        } else if (Array.isArray(output) && output.length > 0) {
+            videoUrl = output[0];
+        } else if (output && typeof output === 'object') {
+            videoUrl = output.video_url || output.video || output.url || output.output;
+        } else {
+            throw new Error(`No video URL found in Leonardo output: ${JSON.stringify(output)}`);
+        }
+
+        console.log('Leonardo AI video URL received:', videoUrl);
+        return videoUrl;
+
+    } catch (error) {
+        console.error('Error with Leonardo AI:', error.message);
+        throw new Error(`Leonardo AI video generation failed: ${error.message}`);
+    }
+}
+
+
+async function generateVideoBytedance(prompt) {
+    const output = await replicate.run("bytedance/seedance-1-pro", { input: prompt });
+
+    // To access the file URL:
+    console.log(output.url());
+    return output.url();
+}
 
 async function enhancePrompt(user_input) {
     const system_prompt = "You are an expert Veo3 video prompt engineer specializing in creating natural, photorealistic video prompts that avoid AI-generated artifacts. Your role is to transform basic user requests into comprehensive, cinematic prompts that produce seamless, believable videos indistinguishable from real footage. Focus on natural movement, authentic lighting, realistic physics, and organic camera work that feels human-operated rather than artificially generated. Keep enhanced prompts concise yet detailed, typically 100-150 words maximum.";
@@ -201,23 +377,23 @@ async function enhancePrompt(user_input) {
 
         Output only the enhanced prompt - no explanations or additional text.
         `;
-         
-        const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
-        contents : `
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-pro",
+        contents: `
         ${system_prompt}
 
         ${user_prompt}
         `
-        })
+    })
 
-        console.log("Enhanced prompt generated successfully:", response.candidates[0].content);
+    console.log("Enhanced prompt generated successfully:", response.candidates[0].content);
 
-        if (!response || !response.candidates || response.candidates.length === 0) {
-            throw new Error("Failed to generate enhanced prompt");
-        }
+    if (!response || !response.candidates || response.candidates.length === 0) {
+        throw new Error("Failed to generate enhanced prompt");
+    }
 
-        return response.candidates[0].content; // Return the first candidate's content
+    return response.candidates[0].content; // Return the first candidate's content
 
 }
 
@@ -227,5 +403,8 @@ module.exports = {
     generateVideoBytez,
     generateVideoEdenAi,
     generateVideoRunwayML,
+    generateVideoReplicate,
+    generateVideoLeonardoAI,
+    generateVideoBytedance,
     enhancePrompt
 }
