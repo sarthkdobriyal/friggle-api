@@ -21,6 +21,9 @@ const replicate = new Replicate({
     auth: api_config.REPLICATE_API_TOKEN,
 });
 
+// Add debug logging for Replicate auth
+console.log('Replicate API Token exists:', !!api_config.REPLICATE_API_TOKEN);
+console.log('Replicate API Token length:', api_config.REPLICATE_API_TOKEN?.length);
 
 async function generateVideoVeo(prompt) {
 
@@ -238,6 +241,13 @@ async function generateVideoReplicate(prompt, selectedModel) {
 
     try {
         console.log(`Generating video with ${selectedModel}...`, modelConfig);
+        
+        // Add authentication check
+        if (!api_config.REPLICATE_API_TOKEN) {
+            throw new Error('Replicate API token is not configured');
+        }
+        
+        console.log('Using Replicate token:', api_config.REPLICATE_API_TOKEN.substring(0, 10) + '...');
 
         // Create prediction instead of run to get better control
         const prediction = await replicate.predictions.create({
@@ -285,7 +295,14 @@ async function generateVideoReplicate(prompt, selectedModel) {
         return videoUrl;
 
     } catch (error) {
-        console.error(`Error with ${selectedModel}:`, error.message);
+        console.error(`Full error details for ${selectedModel}:`, error);
+        
+        // Check if it's an authentication error
+        if (error.message.includes('403') || error.message.includes('Forbidden')) {
+            console.error('Authentication failed. Check Replicate API token.');
+            throw new Error(`Authentication failed for ${selectedModel}. Please check your Replicate API credentials.`);
+        }
+        
         throw new Error(`Video generation failed with ${selectedModel}: ${error.message}`);
     }
 }
@@ -349,17 +366,44 @@ async function generateVideoLeonardoAI(prompt, userId) {
 
 
 async function generateVideoBytedance(prompt) {
-    const input = {
-        prompt: prompt,
-        duration: 6,
-        fps: 24,
-        resolution: "480p"
-    };
-    const output = await replicate.run("bytedance/seedance-1-pro", { input });
+    try {
+        // Add authentication check
+        if (!api_config.REPLICATE_API_TOKEN) {
+            throw new Error('Replicate API token is not configured');
+        }
+        
+        console.log('Bytedance: Using Replicate token:', api_config.REPLICATE_API_TOKEN.substring(0, 10) + '...');
+        
+        const input = {
+            prompt: prompt,
+            duration: 6,
+            fps: 24,
+            resolution: "480p"
+        };
+        
+        const output = await replicate.run("bytedance/seedance-1-pro", { input });
 
-    // To access the file URL:
-    console.log(output.url());
-    return output.url();
+        // Handle different output formats
+        if (typeof output === 'string') {
+            return output;
+        } else if (output && typeof output === 'object' && output.url) {
+            return typeof output.url === 'function' ? output.url() : output.url;
+        } else if (Array.isArray(output) && output.length > 0) {
+            return output[0];
+        } else {
+            console.log('Bytedance output:', output);
+            throw new Error('Unexpected output format from Bytedance model');
+        }
+        
+    } catch (error) {
+        console.error('Bytedance error:', error);
+        
+        if (error.message.includes('403') || error.message.includes('Forbidden')) {
+            throw new Error('Authentication failed for Bytedance model. Please check your Replicate API credentials.');
+        }
+        
+        throw new Error(`Bytedance video generation failed: ${error.message}`);
+    }
 }
 
 
