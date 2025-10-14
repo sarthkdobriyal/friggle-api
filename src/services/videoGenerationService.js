@@ -19,7 +19,6 @@ const runwayClient = new RunwayML({ apiKey: api_config.RUNWAYML_API_SECRET });
 
 const replicate = new Replicate({
     auth: api_config.REPLICATE_API_TOKEN,
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
 });
 
 // Add debug logging for Replicate auth
