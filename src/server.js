@@ -51,8 +51,8 @@ app.use('/api/admin', adminRoutes);
 module.exports = app;
 
 // Start server only in development
-if (require.main === module) {
+// if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
-}
+// }
