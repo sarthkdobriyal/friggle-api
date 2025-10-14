@@ -1,13 +1,13 @@
 const Video = require('../models/videoModel');
 const { uploadVideoToS3 } = require('../services/uploadToS3Service');
-const { 
-  generateVideoVeo, 
-  generateVideoBytez, 
-  enhancePrompt: enhancePromptService,  
-  generateVideoReplicate, 
-  generateVideoLeonardoAI,
-   generateVideoBytedance 
-  } = require('../services/videoGenerationService');
+// const { 
+//   generateVideoVeo, 
+//   generateVideoBytez, 
+//   enhancePrompt: enhancePromptService,  
+//   generateVideoReplicate, 
+//   generateVideoLeonardoAI,
+//    generateVideoBytedance 
+//   } = require('../services/videoGenerationService');
 
 require('dotenv').config();
 
@@ -27,6 +27,14 @@ const generateAiVideo = async (req, res) => {
   }
 
   try {
+    const { 
+      generateVideoVeo, 
+      generateVideoBytez, 
+      generateVideoReplicate, 
+      generateVideoLeonardoAI,
+      generateVideoBytedance 
+    } = require('../services/videoGenerationService');
+
     let videoUrl;
     let needsS3Upload = true; // Flag to determine if we need to upload to S3
 
@@ -102,6 +110,9 @@ const enhancePrompt = async (req, res) => {
   }
 
   try {
+    const { enhancePrompt: enhancePromptService } = require('../services/videoGenerationService');
+
+
     const modelResponse = await enhancePromptService(userInput);
     const enhancedPrompt = modelResponse.parts[0].text; // Clean up the response
     res.status(200).json({ enhancedPrompt });
