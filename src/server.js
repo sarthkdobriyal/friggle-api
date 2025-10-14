@@ -1,13 +1,13 @@
 const express = require('express');
 const cors = require('cors');
-const connectDB = require('./utils/database');
-const authRoutes = require('./routes/authRoutes');
-const videoRoutes = require('./routes/videoRoutes');
-const adminRoutes = require('./routes/adminRoutes');
+// const connectDB = require('./utils/database');
+// const authRoutes = require('./routes/authRoutes');
+// const videoRoutes = require('./routes/videoRoutes');
+// const adminRoutes = require('./routes/adminRoutes');
 require('dotenv').config();
 
 // Connect to database
-connectDB();
+// connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -42,17 +42,17 @@ app.get('/api/health', (req, res) => {
 });
 
 // Auth routes
-app.use('/api/auth', authRoutes);
-app.use('/api/video', videoRoutes);
-app.use('/api/admin', adminRoutes);
+// app.use('/api/auth', authRoutes);
+// app.use('/api/video', videoRoutes);
+// app.use('/api/admin', adminRoutes);
 
 
 // Export the app for Vercel
 module.exports = app;
 
 // Start server only in development
-// if (require.main === module) {
+if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
-// }
+}
