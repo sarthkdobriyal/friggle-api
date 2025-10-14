@@ -1,5 +1,11 @@
 const express = require('express');
-const { generateAiVideo, getRecentVideos, getAllVideos, enhancePrompt, getExampleVideos } = require('../controllers/videoController');
+// const { 
+//     generateAiVideo, 
+//     getRecentVideos, 
+//     getAllVideos, 
+//     enhancePrompt, 
+//     getExampleVideos 
+// } = require('../controllers/videoController');
 const authMiddleware = require('../middleware/authMiddleware');
 
 const router = express.Router();
