@@ -47,7 +47,12 @@ app.use('/api/video', videoRoutes);
 app.use('/api/admin', adminRoutes);
 
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// Export the app for Vercel
+module.exports = app;
+
+// Start server only in development
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
