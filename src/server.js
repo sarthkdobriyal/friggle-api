@@ -43,14 +43,14 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Try to load video routes with error handling
-try {
-  const videoRoutes = require('./routes/videoRoutes');
-  app.use('/api/video', videoRoutes);
-  console.log('Video routes loaded successfully');
-} catch (error) {
-  console.error('Error loading video routes:', error.message);
-  // Don't crash the app, just log the error
-}
+// try {
+//   const videoRoutes = require('./routes/videoRoutes');
+//   app.use('/api/video', videoRoutes);
+//   console.log('Video routes loaded successfully');
+// } catch (error) {
+//   console.error('Error loading video routes:', error.message);
+//   // Don't crash the app, just log the error
+// }
 
 // Export the app for Vercel
 module.exports = app;

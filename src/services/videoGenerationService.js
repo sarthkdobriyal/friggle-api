@@ -22,8 +22,6 @@ const replicate = new Replicate({
 });
 
 // Add debug logging for Replicate auth
-console.log('Replicate API Token exists:', !!api_config.REPLICATE_API_TOKEN);
-console.log('Replicate API Token length:', api_config.REPLICATE_API_TOKEN?.length);
 
 async function generateVideoVeo(prompt) {
 
