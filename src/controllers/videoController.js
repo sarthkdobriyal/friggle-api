@@ -1,7 +1,7 @@
 
 const Video = require('../models/videoModel');
 const { uploadVideoToS3 } = require('../services/uploadToS3Service');
-const { generateVideoVeo, enhancePrompt: enhancePromptService } = require('../services/videoGenerationService'); // Assuming this
+const { generateVideoVeo, generateVideoBytez, enhancePrompt: enhancePromptService, generateVideoEdenAi, generateVideoRunwayML } = require('../services/videoGenerationService'); // Assuming this
 
 require('dotenv').config();
 
@@ -11,17 +11,34 @@ require('dotenv').config();
 
 
 const generateAiVideo = async (req, res) => {
-  const { prompt } = req.body;
+  const { prompt, model } = req.body;
   const { userId } = req.user;
 
-  console.log('Generating AI video for user:', userId, 'with prompt:', prompt);
+  console.log('Generating AI video for user:', userId, 'with prompt:', prompt, model);
 
   if (!userId || !prompt) {
     return res.status(400).json({ error: 'User ID and prompt are required' });
   }
 
   try {
-    const videoUrl = await generateVideoVeo(prompt);
+    let videoUrl;
+
+    if(model === "gemini_veo_3") {
+      console.log("Generating video with Gemini Veo 3 model");
+      videoUrl = await generateVideoVeo(prompt);
+    } else if(model === "bytez_1.7b") {
+      console.log("Generating video with Bytez 1.7B model");
+      videoUrl = await generateVideoBytez(prompt);
+    } else if(model === "eden_ai") {
+      console.log("Generating video with Eden AI model");
+      videoUrl = await generateVideoEdenAi(prompt);
+    } else if(model === "runway_ml") {
+      console.log("Generating video with RunwayML model");
+      videoUrl = await generateVideoRunwayML(prompt);
+    } else {
+      return res.status(400).json({ error: 'Invalid model selected' });
+    }
+
     // const videoUrl = "https://generativelanguage.googleapis.com/v1beta/files/ls9uy6ygd314:download?alt=media&key=AIzaSyAXsq6EzN7fhY55FKfohHnrB-S3VIt4nt0"
 
     // Download video and upload to S3

@@ -1,5 +1,8 @@
 const api_config = require('../config');
 const { GoogleGenAI } = require("@google/genai");
+const Bytez = require('bytez.js') ;
+const RunwayML = require('@runwayml/sdk');
+const { TaskFailedError } = require('@runwayml/sdk');
 require('dotenv').config();
 
 
@@ -9,8 +12,9 @@ const ai = new GoogleGenAI({
     apiKey: api_config.GEMINI_API_KEY, // Ensure you have set your API key in .env file
 });
 
+const bytezSdk = new Bytez(api_config.BYTEZ_KEY);
 
-
+const runwayClient = new RunwayML({ apiKey: api_config.RUNWAYML_API_SECRET });
 
 
 async function generateVideoVeo(prompt) {
@@ -55,6 +59,126 @@ async function generateVideoVeo(prompt) {
     return videoUrl;
 }
 
+async function generateVideoBytez(prompt) {
+
+    const model = bytezSdk.model('ali-vilab/text-to-video-ms-1.7b');
+
+
+    const { error, output } = await model.run(prompt);
+
+    if (error) {
+        console.error("Error generating video with Bytez:", error);
+        throw new Error(`Video generation failed: ${error.message}`);
+    }
+    console.log("Video generated successfully with Bytez:", output);
+    return output;
+}
+
+async function generateVideoEdenAi(prompt) {
+    const url = 'https://api.edenai.run/v2/video/generation_async/';
+    const options = {
+        method: 'POST',
+        headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+            authorization: `Bearer ${api_config.EDEN_AI_KEY}` // Use config instead of hardcoded token
+        },
+        body: JSON.stringify({
+    show_original_response: false,
+    send_webhook_data: true,
+    show_base_64: true,
+    duration: 6,
+    fps: 24,
+    dimension: '1280x720',
+    seed: 12,
+providers: ['bytedance/seedance-1-0-pro-250528'],
+    text: prompt
+  })
+    };
+
+    try {
+        // Initial request to start video generation
+        const response = await fetch(url, options);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(`EdenAI API error: ${data.message || response.statusText}`);
+        }
+
+        console.log("Video generation started:", data);
+        
+        // Get the job ID to poll for completion
+        const jobId = data.public_id;
+        if (!jobId) {
+            throw new Error("No job ID returned from EdenAI");
+        }
+
+        // Poll for completion
+        const statusUrl = `https://api.edenai.run/v2/video/generation_async/${jobId}/`;
+        const statusOptions = {
+            method: 'GET',
+            headers: {
+                accept: 'application/json',
+                authorization: `Bearer ${api_config.EDEN_AI_KEY}`
+            }
+        };
+
+        let completed = false;
+        let attempts = 0;
+        const maxAttempts = 60; // 5 minutes with 5-second intervals
+
+        while (!completed && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+            
+            const statusResponse = await fetch(statusUrl, statusOptions);
+            const statusData = await statusResponse.json();
+            
+            console.log(`Checking video generation status (attempt ${attempts + 1}):`, statusData);
+            
+            if (statusData.status === 'finished') {
+                completed = true;
+                
+                // Extract video URL from response
+                if (statusData.results ) {
+                    const videoUrl = statusData.results.video || statusData.results.video_resource_url;
+                    console.log("Video generated successfully:", videoUrl);
+                    return videoUrl;
+                } else {
+                    throw new Error("No video URL found in successful response");
+                }
+            } else if (statusData.status === 'failed') {
+                throw new Error(`Video generation failed: ${statusData.error || 'Unknown error'}`);
+            }
+            
+            attempts++;
+        }
+
+        if (!completed) {
+            throw new Error("Video generation timed out after 5 minutes");
+        }
+
+    } catch (error) {
+        console.error("Error generating video with EdenAI:", error);
+        throw new Error(`EdenAI video generation failed: ${error.message}`);
+    }
+}
+
+async function generateVideoRunwayML(prompt) {
+    const task = await runwayClient.textToVideo
+  .create({
+    model: 'veo3',
+    promptText: prompt,
+    duration: 8,
+    ratio: '1280:720',
+  })
+  .waitForTaskOutput();
+
+
+  console.log("Video generated successfully with RunwayML:", task);
+  return task.output.videoUrl;
+
+}
+
 
 async function enhancePrompt(user_input) {
     const system_prompt = "You are an expert Veo3 video prompt engineer specializing in creating natural, photorealistic video prompts that avoid AI-generated artifacts. Your role is to transform basic user requests into comprehensive, cinematic prompts that produce seamless, believable videos indistinguishable from real footage. Focus on natural movement, authentic lighting, realistic physics, and organic camera work that feels human-operated rather than artificially generated. Keep enhanced prompts concise yet detailed, typically 100-150 words maximum.";
@@ -79,7 +203,7 @@ async function enhancePrompt(user_input) {
         `;
          
         const response = await ai.models.generateContent({
-        model: "gemini-1.5-pro",
+        model: "gemini-1.5-flash",
         contents : `
         ${system_prompt}
 
@@ -100,5 +224,8 @@ async function enhancePrompt(user_input) {
 
 module.exports = {
     generateVideoVeo,
+    generateVideoBytez,
+    generateVideoEdenAi,
+    generateVideoRunwayML,
     enhancePrompt
 }
