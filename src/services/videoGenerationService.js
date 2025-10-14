@@ -349,12 +349,20 @@ async function generateVideoLeonardoAI(prompt, userId) {
 
 
 async function generateVideoBytedance(prompt) {
-    const output = await replicate.run("bytedance/seedance-1-pro", { input: prompt });
+    const input = {
+        prompt: prompt,
+        duration: 6,
+        fps: 24,
+        resolution: "480p"
+    };
+    const output = await replicate.run("bytedance/seedance-1-pro", { input });
 
     // To access the file URL:
     console.log(output.url());
     return output.url();
 }
+
+
 
 async function enhancePrompt(user_input) {
     const system_prompt = "You are an expert Veo3 video prompt engineer specializing in creating natural, photorealistic video prompts that avoid AI-generated artifacts. Your role is to transform basic user requests into comprehensive, cinematic prompts that produce seamless, believable videos indistinguishable from real footage. Focus on natural movement, authentic lighting, realistic physics, and organic camera work that feels human-operated rather than artificially generated. Keep enhanced prompts concise yet detailed, typically 100-150 words maximum.";
