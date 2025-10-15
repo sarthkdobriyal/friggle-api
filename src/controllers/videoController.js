@@ -90,7 +90,25 @@ const generateAiVideo = async (req, res) => {
     await video.save();
     await user.deductCredits(1); // Deduct 1 credit per video generation
     console.log(`Credit deducted. Remaining credits: ${user.credits}`);
-  
+
+    // Calculate total videos for this user
+    const totalVideosGenerated = await Video.countDocuments({ userId });
+
+    // Calculate videos generated this month
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    
+    const totalVideosGeneratedThisMonth = await Video.countDocuments({
+      userId,
+      createdAt: { $gte: startOfMonth }
+    });
+
+    // Update user with calculated counts
+    await User.findByIdAndUpdate(userId, {
+      totalVideosGenerated,
+      totalVideosGeneratedThisMonth
+    });
 
     res.status(200).json({ videoUrl: s3VideoUrl, videoId: video._id, creditsLeft: user.credits });
   } catch (error) {

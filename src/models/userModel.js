@@ -54,6 +54,16 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['user', 'admin'],
     default: 'user'
+  },
+  totalVideosGenerated: {
+    type: Number,
+    default: 0,
+    min: [0, 'Total videos generated cannot be negative']
+  },
+  totalVideosGeneratedThisMonth: {
+    type: Number,
+    default: 0,
+    min: [0, 'Total videos generated this month cannot be negative']
   }
 }, {
   timestamps: true
