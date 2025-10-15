@@ -10,7 +10,6 @@ const ai = new GoogleGenAI({
     apiKey: api_config.GEMINI_API_KEY, // Ensure you have set your API key in .env file
 });
 
-const bytezSdk = new Bytez(api_config.BYTEZ_KEY);
 
 // const runwayClient = new RunwayML({ apiKey: api_config.RUNWAYML_API_SECRET });
 
