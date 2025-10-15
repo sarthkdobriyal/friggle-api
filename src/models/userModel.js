@@ -35,6 +35,11 @@ const userSchema = new mongoose.Schema({
     trim: true,
     maxlength: [50, 'Last name cannot exceed 50 characters']
   },
+   credits: {
+    type: Number,
+    default: 0,
+    min: [0, 'Credits cannot be negative']
+  },
   isActive: {
     type: Boolean,
     default: true
@@ -66,6 +71,22 @@ userSchema.pre('save', async function(next) {
     next(error);
   }
 });
+
+
+// Method to deduct credits
+userSchema.methods.deductCredits = async function(amount) {
+  if (this.credits < amount) {
+    throw new Error('Insufficient credits');
+  }
+  this.credits -= amount;
+  return await this.save();
+};
+
+// Method to add credits
+userSchema.methods.addCredits = async function(amount) {
+  this.credits += amount;
+  return await this.save();
+};
 
 // Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword) {

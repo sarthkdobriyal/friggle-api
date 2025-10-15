@@ -105,6 +105,45 @@ const getAllVideos = async (req, res) => {
     }
 } 
 
+const addCreditsToUser = async (req, res) => {
+    try {
+        const { userId, credits } = req.body;
+        
+        // Validate input
+        if (!userId || credits === undefined) {
+            return res.status(400).json({ error: 'User ID and credits amount are required' });
+        }
+        
+        if (typeof credits !== 'number' || credits < 0) {
+            return res.status(400).json({ error: 'Credits must be a positive number' });
+        }
+        
+        // Find user
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        // Use the existing addCredits method from the User model
+        await user.addCredits(credits);
+        
+        console.log(`Added ${credits} credits to user ${user.email}. New total: ${user.credits}`);
+        
+        res.status(200).json({ 
+            message: 'Credits added successfully',
+            user: {
+                id: user._id,
+                email: user.email,
+                credits: user.credits
+            }
+        });
+    } catch (e) {
+        console.error('Error adding credits to user:', e);
+        res.status(500).json({ error: 'Failed to add credits to user' });
+    }
+}
+
+
 
 
 module.exports = {
@@ -113,6 +152,7 @@ module.exports = {
     getAllVideos,
     deleteUser,
     toggleisActive,
-    toggleisAdmin
+    toggleisAdmin,
+    addCreditsToUser
 
 };

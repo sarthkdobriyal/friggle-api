@@ -1,4 +1,5 @@
 const Video = require('../models/videoModel');
+const User = require('../models/userModel');
 const { uploadVideoToS3 } = require('../services/uploadToS3Service');
 // const { 
 //   generateVideoVeo, 
@@ -24,6 +25,17 @@ const generateAiVideo = async (req, res) => {
 
   if (!userId || !prompt) {
     return res.status(400).json({ error: 'User ID and prompt are required' });
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  console.log('User credits:', user.credits);
+
+  if (user.credits <= 0) {
+    return res.status(400).json({ error: 'Insufficient credits. Buy More to use this feature' });
   }
 
   try {
@@ -76,8 +88,11 @@ const generateAiVideo = async (req, res) => {
       prompt
     });
     await video.save();
+    await user.deductCredits(1); // Deduct 1 credit per video generation
+    console.log(`Credit deducted. Remaining credits: ${user.credits}`);
+  
 
-    res.status(200).json({ videoUrl: s3VideoUrl, videoId: video._id });
+    res.status(200).json({ videoUrl: s3VideoUrl, videoId: video._id, creditsLeft: user.credits });
   } catch (error) {
     console.error('Error generating video:', error.message);
     res.status(500).json({ error: error.message || 'Failed to generate video' });
