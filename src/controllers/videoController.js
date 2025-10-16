@@ -47,7 +47,7 @@ const generateAiVideo = async (req, res) => {
     }  else if(model === "leonardoai/motion-2.0") {
       console.log("Generating video with Leonardo AI Motion 2.0 model");
       videoUrl = await generateVideoLeonardoAI(prompt, userId);
-      needsS3Upload = false; // Already uploaded to S3
+      needsS3Upload = true; // Already uploaded to S3
     } else if(model === "bytedance/seedance-1-pro") {
       console.log("Generating video with Bytedance Seedance 1 Pro model");
       videoUrl = await generateVideoBytedance(prompt);
